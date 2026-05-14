@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Production / Build
+dist/
+dist-ssr/
+build/
+out/
+
+# Environment Variables (CRITICAL: Never commit these)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Server specific
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Large binary files (Optional - uncomment if you don't want to push them)
+# server/*.traineddata
+
+# Testing
+coverage/
+.nyc_output
