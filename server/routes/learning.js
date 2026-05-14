@@ -4,6 +4,7 @@ const { processTextToFlashcards } = require('../utils/aiHandler');
 const { analyzeKanjiWithAI } = require('../utils/kanjiHandler');
 const Deck = require('../models/Deck');
 const Flashcard = require('../models/Flashcard');
+const Kanji = require('../models/Kanji');
 
 // API: Phân tích văn bản bằng AI và chuẩn bị dữ liệu Flashcards
 router.post('/analyze-to-cards', async (req, res) => {
@@ -115,6 +116,16 @@ router.post('/analyze-kanji', async (req, res) => {
   } catch (error) {
     console.error('Lỗi route analyze-kanji:', error);
     res.status(500).json({ error: 'Không thể phân tích chữ Kanji này.' });
+  }
+});
+
+// API: Lấy tất cả Kanji đã có trong database
+router.get('/kanjis', async (req, res) => {
+  try {
+    const kanjis = await Kanji.find().sort({ createdAt: -1 });
+    res.json(kanjis);
+  } catch (error) {
+    res.status(500).json({ error: 'Lỗi khi lấy danh sách Kanji.' });
   }
 });
 

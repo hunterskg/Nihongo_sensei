@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, Zap, ShieldCheck, Loader2, BrainCircuit, Save, Library, Home, ChevronRight, BookOpen, Trash2, Edit2, Check, X, PlusCircle, Play, RotateCw } from 'lucide-react';
+import { Upload, Image as ImageIcon, Zap, ShieldCheck, Loader2, BrainCircuit, Save, Library, Home, ChevronRight, ChevronLeft, BookOpen, Trash2, Edit2, Check, X, PlusCircle, Play, RotateCw, Languages } from 'lucide-react';
 import axios from 'axios';
 import './App.css';
 
@@ -41,16 +41,28 @@ function App() {
   const [kanjiAnalysis, setKanjiAnalysis] = useState(null);
   const [isKanjiLoading, setIsKanjiLoading] = useState(false);
 
+  // Notification State
+  const [toast, setToast] = useState(null);
+
+  // Kanji Dictionary States
+  const [allKanjis, setAllKanjis] = useState([]);
+
   useEffect(() => {
     fetchDecks();
+    if (view === 'kanjis') fetchKanjis();
   }, [view]);
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchDecks = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/learning/decks');
       setDecks(response.data);
     } catch (error) {
-      console.error("Lỗi lấy danh sách bộ thẻ");
+      showToast("Lỗi lấy danh sách bộ thẻ", "error");
     }
   };
 
@@ -61,7 +73,16 @@ function App() {
       setDeckCards(response.data);
       setIsStudyMode(false);
     } catch (error) {
-      alert("Lỗi lấy chi tiết thẻ");
+      showToast("Lỗi lấy chi tiết thẻ", "error");
+    }
+  };
+
+  const fetchKanjis = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/learning/kanjis');
+      setAllKanjis(response.data);
+    } catch (error) {
+      showToast("Lỗi lấy danh sách Kanji", "error");
     }
   };
 
@@ -83,8 +104,9 @@ function App() {
     try {
       await axios.delete(`http://localhost:5000/api/learning/decks/${deckId}`);
       fetchDecks();
+      showToast("Đã xóa bộ thẻ", "success");
     } catch (error) {
-      alert("Lỗi khi xóa bộ thẻ");
+      showToast("Lỗi khi xóa bộ thẻ", "error");
     }
   };
 
@@ -93,8 +115,9 @@ function App() {
     try {
       await axios.delete(`http://localhost:5000/api/learning/cards/${cardId}`);
       setDeckCards(deckCards.filter(c => c._id !== cardId));
+      showToast("Đã xóa thẻ", "success");
     } catch (error) {
-      alert("Lỗi khi xóa thẻ");
+      showToast("Lỗi khi xóa thẻ", "error");
     }
   };
 
@@ -103,8 +126,9 @@ function App() {
       await axios.put(`http://localhost:5000/api/learning/cards/${card._id}`, card);
       setEditingCard(null);
       fetchDeckDetails(selectedDeck);
+      showToast("Đã cập nhật", "success");
     } catch (error) {
-      alert("Lỗi khi cập nhật");
+      showToast("Lỗi khi cập nhật", "error");
     }
   };
 
@@ -114,8 +138,9 @@ function App() {
       const response = await axios.post(`http://localhost:5000/api/learning/decks/${selectedDeck._id}/cards`, newCardData);
       setDeckCards([...deckCards, response.data]);
       setEditingCard(response.data._id);
+      showToast("Đã thêm từ mới", "success");
     } catch (error) {
-      alert("Lỗi khi thêm thẻ");
+      showToast("Lỗi khi thêm thẻ", "error");
     }
   };
 
@@ -131,8 +156,9 @@ function App() {
     try {
       const response = await axios.post('http://localhost:5000/api/ocr/extract', formData);
       setResultText(response.data.text);
+      showToast("Trích xuất thành công", "success");
     } catch (error) {
-      alert('Lỗi khi xử lý ảnh.');
+      showToast('Lỗi khi xử lý ảnh.', "error");
     } finally {
       setLoading(false);
     }
@@ -144,9 +170,10 @@ function App() {
     try {
       const response = await axios.post('http://localhost:5000/api/learning/analyze-to-cards', { text: resultText });
       setFlashcards(response.data);
+      showToast("Đã tạo Flashcards", "success");
       setTimeout(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 100);
     } catch (error) {
-      alert('AI không thể phân tích văn bản này.');
+      showToast('AI không thể phân tích văn bản này.', "error");
     } finally {
       setAiLoading(false);
     }
@@ -160,7 +187,7 @@ function App() {
         deckTitle: finalTitle,
         cards: flashcards
       });
-      alert('Đã lưu thành công!');
+      showToast('Đã lưu thành công!', "success");
       setFlashcards([]);
       setResultText('');
       setSelectedFile(null);
@@ -168,12 +195,12 @@ function App() {
       setSelectedExistingDeck('');
       setView('library');
     } catch (error) {
-      alert('Lỗi khi lưu.');
+      showToast('Lỗi khi lưu.', "error");
     }
   };
 
   const startStudy = () => {
-    if (deckCards.length === 0) return alert("Bộ thẻ này chưa có từ vựng!");
+    if (deckCards.length === 0) return showToast("Bộ thẻ này chưa có từ vựng!", "info");
     setIsStudyMode(true);
     setCurrentCardIndex(0);
     setIsFlipped(false);
@@ -184,14 +211,21 @@ function App() {
       setCurrentCardIndex(currentCardIndex + 1);
       setIsFlipped(false);
     } else {
-      alert("Chúc mừng! Bạn đã hoàn thành bộ thẻ này.");
+      showToast("Chúc mừng! Bạn đã hoàn thành bộ thẻ này.", "success");
       setIsStudyMode(false);
+    }
+  };
+
+  const prevCard = () => {
+    if (currentCardIndex > 0) {
+      setCurrentCardIndex(currentCardIndex - 1);
+      setIsFlipped(false);
     }
   };
 
   // Quiz Mode Logic
   const startQuiz = (type) => {
-    if (deckCards.length < 2) return alert("Cần ít nhất 2 thẻ để bắt đầu trắc nghiệm!");
+    if (deckCards.length < 2) return showToast("Cần ít nhất 2 thẻ để bắt đầu trắc nghiệm!", "info");
     
     const types = ['kanji-meaning', 'kanji-furigana', 'furigana-kanji', 'meaning-kanji'];
     
@@ -306,10 +340,20 @@ function App() {
 
   const handleAnswer = (option) => {
     if (isAnswered) return;
+    const currentQuestion = quizQuestions[currentQuizIndex];
     setSelectedAnswer(option);
     setIsAnswered(true);
-    if (option === quizQuestions[currentQuizIndex].correctAnswer) {
-      setScore(score + 1);
+    
+    if (option === currentQuestion.correctAnswer) {
+      // Chỉ cộng điểm nếu trả lời đúng ngay lần đầu
+      if (!currentQuestion.isRetry) {
+        setScore(score + 1);
+      }
+    } else {
+      // Nếu sai, thêm lại câu này vào cuối danh sách để làm lại sau
+      const retryQuestion = { ...currentQuestion, isRetry: true };
+      setQuizQuestions([...quizQuestions, retryQuestion]);
+      showToast("Câu này sẽ xuất hiện lại để bạn ôn tập!", "info");
     }
   };
 
@@ -333,8 +377,11 @@ function App() {
           <button className={`nav-item ${view === 'home' ? 'active' : ''}`} onClick={() => {setView('home'); setSelectedDeck(null); setIsStudyMode(false); setIsQuizMode(false);}}>
             <Home size={20} /> Quét ảnh
           </button>
-          <button className={`nav-item ${view === 'library' ? 'active' : ''}`} onClick={() => setView('library')}>
+          <button className={`nav-item ${view === 'library' ? 'active' : ''}`} onClick={() => {setView('library'); setSelectedDeck(null);}}>
             <Library size={20} /> Bộ sưu tập
+          </button>
+          <button className={`nav-item ${view === 'kanjis' ? 'active' : ''}`} onClick={() => setView('kanjis')}>
+            <Languages size={20} /> Từ điển Kanji
           </button>
         </div>
       </nav>
@@ -405,6 +452,30 @@ function App() {
             </div>
           )}
         </div>
+      ) : view === 'kanjis' ? (
+        <div className="kanji-library-view animate-fade-in">
+          <header style={{marginBottom: '30px'}}>
+            <h2>Từ điển Kanji cá nhân</h2>
+            <p>Tất cả các chữ Hán bạn đã từng phân tích sẽ được lưu tại đây</p>
+          </header>
+          
+          <div className="kanjis-grid">
+            {allKanjis.map((kj) => (
+              <div key={kj._id} className="kanji-card" onClick={(e) => handleKanjiClick(e, kj.kanji)}>
+                <div className="kj-char">{kj.kanji}</div>
+                <div className="kj-sino">{kj.sinoVietnamese}</div>
+                <div className="kj-meaning">{kj.meaning}</div>
+              </div>
+            ))}
+          </div>
+          
+          {allKanjis.length === 0 && (
+            <div className="empty-state">
+              <Languages size={48} />
+              <p>Bạn chưa phân tích chữ Kanji nào. Hãy bắt đầu học để làm giàu từ điển nhé!</p>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="library-view animate-fade-in">
           {!selectedDeck ? (
@@ -449,7 +520,12 @@ function App() {
                 </div>
 
                 <div className="study-controls">
-                  <button className="next-btn" onClick={nextCard}>Tiếp theo <ChevronRight size={20} /></button>
+                  <button className="prev-btn" onClick={prevCard} disabled={currentCardIndex === 0}>
+                    <ChevronLeft size={20} /> Quay lại
+                  </button>
+                  <button className="next-btn" onClick={nextCard}>
+                    Tiếp theo <ChevronRight size={20} />
+                  </button>
                 </div>
               </div>
             ) : isQuizMode ? (
@@ -555,10 +631,10 @@ function App() {
                   <div className="result-screen animate-fade-in">
                     <div className="score-circle">
                       <div className="score-value">{score}</div>
-                      <div className="score-label">/{quizQuestions.length}</div>
+                      <div className="score-label">/{deckCards.length}</div>
                     </div>
                     <div className="result-message">
-                      {score === quizQuestions.length ? "Tuyệt vời! Hoàn hảo! 🎉" : score > quizQuestions.length / 2 ? "Làm tốt lắm! 👍" : "Cố gắng lên nhé! 💪"}
+                      {score === deckCards.length ? "Tuyệt vời! Hoàn hảo! 🎉" : score > deckCards.length / 2 ? "Làm tốt lắm! 👍" : "Cố gắng lên nhé! 💪"}
                     </div>
                     <p className="result-sub">Bạn đã hoàn thành bài trắc nghiệm bộ thẻ "{selectedDeck.title}"</p>
                     <button className="next-btn" onClick={() => setIsQuizMode(false)}>Quay lại bộ sưu tập</button>
@@ -665,6 +741,15 @@ function App() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`toast-container ${toast.type} animate-slide-up`}>
+          <div className="toast-icon">
+            {toast.type === 'success' ? <Check size={18} /> : toast.type === 'error' ? <X size={18} /> : <Zap size={18} />}
+          </div>
+          <div className="toast-message">{toast.message}</div>
         </div>
       )}
     </div>
